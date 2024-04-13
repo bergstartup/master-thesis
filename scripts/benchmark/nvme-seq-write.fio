@@ -1,6 +1,6 @@
 [global]
-name=seqread
-time_based
+name=seqwrite
+time_based=1
 ramp_time=10
 runtime=120
 bs=4096B
@@ -11,6 +11,5 @@ iodepth=1
 group_reporting=1
 filename=/dev/nvme0n1
 
-
-[seqread]
-readwrite=read
+[seqwrite]
+readwrite=write
