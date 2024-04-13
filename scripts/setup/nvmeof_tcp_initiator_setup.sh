@@ -1,3 +1,4 @@
+#provide ip addr of target as cmd line arg
 sudo modprobe nvme
 sudo modprobe nvme-tcp
 sudo modprobe nvme-fabrics

@@ -1,0 +1,16 @@
+[global]
+name=local
+time_based
+ramp_time=10
+runtime=30
+bs=4096B
+ioengine=libaio
+direct=1
+numjobs=1
+iodepth=1
+group_reporting=1
+filename=/dev/nvme0n1
+
+
+[seqread]
+readwrite=read
