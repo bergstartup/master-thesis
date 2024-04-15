@@ -1,0 +1,14 @@
+[global]
+filename=/dev/nvme0n1
+ioengine=libaio
+direct=1
+bs=4k
+size=100%
+numjobs=1
+#time_based
+#runtime=3600
+
+[steady-state-test]
+rw=randwrite
+iodepth=128
+
