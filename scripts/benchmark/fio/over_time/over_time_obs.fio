@@ -1,0 +1,15 @@
+[global]
+filename=/dev/nvme0n1
+ioengine=libaio
+direct=1
+bs=4k
+numjobs=1
+time_based
+runtime=20
+iodepth=1
+ramptime=10
+group_reporting
+
+[long-running]
+rw=write
+log_avg_msec=1000
