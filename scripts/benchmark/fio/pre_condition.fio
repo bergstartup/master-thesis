@@ -1,12 +1,14 @@
 [global]
-filename=/dev/nvme0n1
-ioengine=libaio
+filename=${DEVICE}
+ioengine=io_uring
+fixedbufs=1
+registerfiles=1
+sqthread_poll=1
+hipri=1
 direct=1
 bs=4k
 size=100%
 numjobs=1
-#time_based
-#runtime=3600
 
 [steady-state-test]
 rw=randwrite
