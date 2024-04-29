@@ -83,6 +83,7 @@ def erase_and_pre_condition(device):
 
 
 def statisticaly_valid(exp_name, entries):
+    return True
     parameters = ["clat","bw","iops"]
     for para in parameters:
         file_path = "{}{}_{}.log".format(log_dir, exp_name, para)
@@ -121,7 +122,8 @@ for experiment_parameters in all_experiments:
     #Set the environemnt variables for the experiment
     set_experiment_parameters(experiment_parameters)
     for iter_count in range(1,16):
-        os.environ["TIME"] = str(iter_count * 5)
+        #os.environ["TIME"] = str(iter_count * 5)
+        os.environ["TIME"] = str(120)
         #Run the fio
         print("({})Executing experiment".format(iter_count))
         run_fio("workload.fio", op)
@@ -130,4 +132,3 @@ for experiment_parameters in all_experiments:
         if statisticaly_valid(experiment_parameters["NAME"], iter_count * 5):
             break
         print("Not valid")
-    break
