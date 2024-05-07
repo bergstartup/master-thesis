@@ -1,0 +1,22 @@
+#!/usr/bin/bpftrace
+#include<string.h>
+BEGIN
+{
+}
+
+kfunc:tcp_v4_rcv
+{
+    	$skb = (struct sk_buff *)args.skb;
+  	$sk = ((struct sock *) $skb->sk);
+	
+	$cip = (uint32)pton("172.16.137.2");
+    	
+	// Filter packets by IP address
+    	if ($sk->__sk_common.skc_daddr == $cip) {
+        	@port[$sk->__sk_common.skc_num]++;
+    	}
+}
+
+END
+{
+}
