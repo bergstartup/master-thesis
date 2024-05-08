@@ -13,6 +13,7 @@ ioengine=io_uring
 fixedbufs=1
 registerfiles=1
 sqthread_poll=1
+sqthread_poll_cpu=0
 hipri=1
 direct=1
 

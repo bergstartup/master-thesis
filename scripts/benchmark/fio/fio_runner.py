@@ -1,13 +1,16 @@
 import os
+import time
 import sys
 import subprocess
 import confirm_tool
+import signal
 
 
 observation_dir="../../../observations/"
 confidence_level = 0.95
 error_bound = 0.05
 log_dir = "./logs/"
+NCPUS = 8
 
 node = sys.argv[1] #Either local or remote
 
@@ -38,14 +41,16 @@ else:
     parse_and_identify_device_type(devices_str[1])
 print("\n")
 
-
+devices = {}
+#devices["RAM"] = "/dev/nvme0n1"
+devices["SSD"] = "/dev/nvme0n2"
 
 #Define workload parameters
-workload_type = ["read","write","randread","randwrite"]
+workload_type = ["read","write"]
 
 queue_depth = [1, 64, 128]
 
-number_of_process = [1, 2, 4, 8]
+number_of_process = [1]
 
 
 def list_all_experiments():
@@ -68,9 +73,10 @@ def set_experiment_parameters(parameters):
     for key in parameters.keys():
         os.environ[key] = str(parameters[key])
 
-def run_fio(fio, op):
+def run_fio(fio, op, cpus = [i for i in range(NCPUS)]):
+    cpu_string = ','.join(map(str, cpus))
     with open(op, 'w') as File:
-        subprocess.run("fio --output-format=json {}".format(fio), shell=True, text=True, stdout=File)
+        subprocess.run("taskset -c {} fio --output-format=json {}".format(cpu_string, fio), shell=True, text=True, stdout=File)
 
 
 def erase_and_pre_condition(device):
@@ -100,11 +106,24 @@ def statisticaly_valid(exp_name, entries):
     return True
 
 
+def run_tcp_trace(fop):
+    p = subprocess.Popen(["bpftrace","../../bpf/tcptrace.bt","-o",fop+"_bpf"])
+    time.sleep(5)
+    return p
+
 #**************Main***********************
 #Execute pre conditioning
 for device in devices.keys(): 
     break
     erase_and_pre_condition(devices[device])
+
+
+print("Running bpf trace to collect keep alive data")
+p = run_tcp_trace(observation_dir + "keep_alive_bpf")
+time.sleep(10)
+p.send_signal(signal.SIGINT)
+
+
 
 all_experiments = list_all_experiments()
 count_experiment = 0
@@ -121,12 +140,17 @@ for experiment_parameters in all_experiments:
 
     #Set the environemnt variables for the experiment
     set_experiment_parameters(experiment_parameters)
-    for iter_count in range(1,16):
-        #os.environ["TIME"] = str(iter_count * 5)
-        os.environ["TIME"] = str(120)
+    for iter_count in range(1, 16):
+        os.environ["TIME"] = str(120) 
+
+        #run tcp_trace
+        p = run_tcp_trace(op)
         #Run the fio
-        print("({})Executing experiment".format(iter_count))
-        run_fio("workload.fio", op)
+        print("{}) Executing experiment".format(iter_count))
+        run_fio("workload.fio", op, [i for i in range(experiment_parameters["NPROCESS"])])
+        #kill tcp_trace
+        p.send_signal(signal.SIGINT)
+
         #Parse the output to get latency, IOPS, bandwidth and percentile distribution 
         #Check the statistical validity with confirm tool
         if statisticaly_valid(experiment_parameters["NAME"], iter_count * 5):
