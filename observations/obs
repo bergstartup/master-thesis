@@ -1,0 +1,7 @@
+SSD read QD1 with doorbell : 13953.933333, latency : 
+                    QD128  : 78013.297071
+SSD read QD1 with kernel polling in different core : 12532.807531
+                                             QD128 : 206936.062762
+SSD read QD1 with kernel polling in same core : 131.548117
+                                
+
