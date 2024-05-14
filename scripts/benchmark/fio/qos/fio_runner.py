@@ -22,10 +22,11 @@ def set_experiment_parameters(parameters):
     os.environ["LCPU"] = "0"
     os.environ["TCPU"] = "0"
     os.environ["STONEWALL"] = "0" 
+    #Set to default NICE and IONICE value
     os.environ["LNICE"] = "0"
     os.environ["TNICE"] = "0"
-    os.environ["LPRIO"] = "7"
-    os.environ["TPRIO"] = "7"
+    os.environ["LPRIO"] = "4"
+    os.environ["TPRIO"] = "4"
     if "diff" in parameters:
         os.environ["TCPU"] = "1"
     if "nice" in parameters:
