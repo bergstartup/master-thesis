@@ -8,7 +8,6 @@ ioengine=io_uring
 fixedbufs=1
 registerfiles=1
 direct=1
-filename=${DEVICE}
 
 [latency]
 prio=${LPRIO}
@@ -16,6 +15,7 @@ nice=${LNICE}
 iodepth=1
 readwrite=write
 cpus_allowed=${LCPU}
+filename=${LDEVICE}
 
 [throughput]
 stonewall=${STONEWALL}
@@ -24,3 +24,4 @@ nice=${TNICE}
 iodepth=128
 readwrite=read
 cpus_allowed=${TCPU}
+filename=${TDEVICE}

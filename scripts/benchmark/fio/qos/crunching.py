@@ -1,11 +1,15 @@
 import sys
+import os
 import json
 
 #Observation directory
 observation_dir = "../../../../observations/qos/"
 all_observations = {}
-experiments = ["local_same_stonewall.json","local_nice_stonewall.json","local_nice_diff_core.json","local_prio_diff_core.json","remote_nice_prio_same_core.json","local_nice_prio_same_core.json","local_prio_same_core.json","remote_prio_same_core.json","local_diff_core.json","remote_nice_same_core.json","local_nice_same_core.json","local_same_core.json","local_stonewall.json","remote_diff_core.json","remote_same_core.json","remote_stonewall.json"]
+#experiments = ["local_same_stonewall.json","local_nice_stonewall.json","local_nice_diff_core.json","local_prio_diff_core.json","remote_nice_prio_same_core.json","local_nice_prio_same_core.json","local_prio_same_core.json","remote_prio_same_core.json","local_diff_core.json","remote_nice_same_core.json","local_nice_same_core.json","local_same_core.json","local_stonewall.json","remote_diff_core.json","remote_same_core.json","remote_stonewall.json"]
+experiments = os.listdir(observation_dir)
 for exp in experiments:
+    if "crunched_numbers_qos.json" == exp:
+        continue
     try:
         with open(observation_dir+exp,'r') as f:
             print(exp)

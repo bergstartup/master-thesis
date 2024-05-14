@@ -13,12 +13,14 @@ log_dir = "./logs/"
 
 node = sys.argv[1] #Either local or remote
 devices = {}
-devices["SSD"] = "/dev/nvme0n2"
+devices["LDEVICE"] = "/dev/nvme1n1" #Set to SSD
+devices["TDEVICE"] = "/dev/nvme0n1" #Set to RAM
 experiments = ["same_core", "nice_same_core", "nice_prio_same_core", "diff_core", "prio_diff_core", "stonewall"]
 
 
 def set_experiment_parameters(parameters):
-    os.environ["DEVICE"] = devices["SSD"]
+    os.environ["LDEVICE"] = devices["LDEVICE"]
+    os.environ["TDEVICE"] = devices["TDEVICE"]
     os.environ["LCPU"] = "0"
     os.environ["TCPU"] = "0"
     os.environ["STONEWALL"] = "0" 
@@ -85,7 +87,7 @@ for experiment_parameters in experiments:
     print("Experiment({}/{}):".format(count_experiment, total_experiments),experiment_parameters)
     
     #Get output file name
-    output_file_name = node +"_"+experiment_parameters+".json"
+    output_file_name = node +"_ns_"+experiment_parameters+".json"
     op = observation_dir + output_file_name
 
     #Set the environemnt variables for the experiment
