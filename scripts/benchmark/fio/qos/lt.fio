@@ -8,14 +8,19 @@ ioengine=io_uring
 fixedbufs=1
 registerfiles=1
 direct=1
-filename=/dev/nvme1n1
+filename=${DEVICE}
 
 [latency]
+prio=${LPRIO}
+nice=${LNICE}
 iodepth=1
 readwrite=write
-cpus_allowed=0
+cpus_allowed=${LCPU}
 
 [throughput]
+stonewall=${STONEWALL}
+prio=${TPRIO}
+nice=${TNICE}
 iodepth=128
 readwrite=read
-cpus_allowed=0
+cpus_allowed=${TCPU}
