@@ -6,51 +6,22 @@ import confirm_tool
 import signal
 
 
-observation_dir="../../../observations/"
+observation_dir="../../../observations/performance/"
 confidence_level = 0.95
 error_bound = 0.05
 log_dir = "./logs/"
 NCPUS = 8
-
 node = sys.argv[1] #Either local or remote
-
-#Parse available NVMe devices
 devices = {}
-def parse_and_identify_device_type(nvme_list_op):
-    dev_path = nvme_list_op.split()[0]
-    if "FEMU" in nvme_list_op:
-        print("RAM backed NVMe device : ", dev_path)
-        devices["RAM"] = dev_path
-    else:
-        print("NVMe SSD device: ",dev_path)
-        devices["SSD"] = dev_path
-
-print("Identiying SSD devices")
-device_list = subprocess.check_output(["nvme", "list"])
-devices_str = device_list.decode().split("\n")[2:]
-if len(devices_str) == 0:
-    print("ABORT: No NVMe devices identified")
-    sys.exit(-1)
-
-#Check for RAM backed SSD emulation
-parse_and_identify_device_type(devices_str[0])
-
-if len(devices_str) < 2:
-    print("WARNING : Only one NVMe device is identified")
-else:
-    parse_and_identify_device_type(devices_str[1])
-print("\n")
-
-devices = {}
-#devices["RAM"] = "/dev/nvme0n1"
-devices["SSD"] = "/dev/nvme0n2"
+devices["RAM"] = os.environ("S_DEVICE")
+devices["SSD"] = os.environ("P_DEVICE")
 
 #Define workload parameters
-workload_type = ["read","write"]
+workload_type = ["randread","randwrite","read","write"]
 
 queue_depth = [1, 64, 128]
 
-number_of_process = [1]
+number_of_process = [1, 2, 4, 8]
 
 
 def list_all_experiments():
@@ -144,12 +115,12 @@ for experiment_parameters in all_experiments:
         os.environ["TIME"] = str(120) 
 
         #run tcp_trace
-        p = run_tcp_trace(op)
+        #p = run_tcp_trace(op)
         #Run the fio
         print("{}) Executing experiment".format(iter_count))
         run_fio("workload.fio", op, [i for i in range(experiment_parameters["NPROCESS"])])
         #kill tcp_trace
-        p.send_signal(signal.SIGINT)
+        #p.send_signal(signal.SIGINT)
 
         #Parse the output to get latency, IOPS, bandwidth and percentile distribution 
         #Check the statistical validity with confirm tool

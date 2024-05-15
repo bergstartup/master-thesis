@@ -2,7 +2,7 @@ import sys
 import json
 
 #Observation directory
-observation_dir = "../../../observations/"
+observation_dir = "../../../observations/performance/"
 
 #Define workload parameters
 workload_type = ["read","write","randread","randwrite"]
@@ -45,8 +45,8 @@ def get_experiment(node, dt, wt, qd, np):
 
 #Crunch all observations
 all_observations = {}
-experiments = list_all_experiments('remote_polling')
-experiments = ["local_diff_core.json","local_same_core.json","local_stonewall.json","remote_diff_core.json","remote_same_core.json","remote_stonewall.json"]
+experiments = list_all_experiments('remote')
+#experiments = ["local_diff_core.json","local_same_core.json","local_stonewall.json","remote_diff_core.json","remote_same_core.json","remote_stonewall.json"]
 for exp in experiments:
     try:
         with open(observation_dir+exp,'r') as f:
