@@ -3,7 +3,7 @@ name=${NAME}
 
 time_based=1
 runtime=${TIME}
-ramp_time=10
+ramp_time=60
 
 bs=4096B
 iodepth=${QD}
@@ -20,13 +20,13 @@ direct=1
 group_reporting=1
 filename=${DEVICE}
 
-#per_job_logs=0
+per_job_logs=0
 #disable_slat=1
 #disable_lat=1
 #write_bw_log=logs/${NAME}
 #write_lat_log=logs/${NAME}
-#write_iops_log=logs/${NAME}
-#log_avg_msec=1000
+write_iops_log=logs/${NAME}
+log_avg_msec=1000
 
 [experiment]
 readwrite=${WORKLOAD}

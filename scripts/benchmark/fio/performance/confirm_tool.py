@@ -21,9 +21,18 @@ def get_obs_from_log(log_file):
     observations = []
     with open(log_file,'r') as f:
         lines = f.readlines()
+        prev_ts=0
+        obs = []
         for line in lines:
+            ts = int(line.split(",")[0])
+            if ts < prev_ts:
+                observations.append(obs)
+                obs = []
+            prev_ts = ts
             val = line.split(",")[1]
-            observations.append(int(val))
+            obs.append(float(val))
+
+        observations.append(obs)
     return observations
 
 def get_ahal(subset,z_score):
