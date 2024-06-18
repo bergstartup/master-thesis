@@ -56,7 +56,7 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
                 
                 self.send_response(200)
                 self.end_headers()
-                self.wfile.write(f"Stopped process with ID: {id}".encode())
+                self.wfile.write(f"Stopped process with ID: {id}\n".encode())
             else:
                 self.send_response(400)
                 self.end_headers()
