@@ -1,19 +1,32 @@
 import sys
 import json
+import os
 
 #Observation directory
-observation_dir = "../../../observations/performance/"
+observation_dir = "../../../../observations/performance/"
+cpu_util_dir = "../../../monitor/"
 
 #Define workload parameters
 workload_type = ["read","write","randread","randwrite"]
 
-queue_depth = [1, 64, 128]
+queue_depth = [1, 32, 64, 128]
 
 number_of_process = [1, 2, 4, 8]
 
 devices = ["RAM", "SSD"]
 
-
+def get_cpu_avg(exp):
+    util = {}
+    with open(cpu_util_dir+exp,"r") as f:
+        lines = f.readlines()[-11:]
+        for line in lines:
+            obs = line.split()
+            cpu = obs[1]
+            user = obs[2]
+            sys = obs[4]
+            iowait = obs[5]
+            util[cpu] = {"usr":user,"sys":sys,"io":iowait}
+    return util
 
 def list_all_experiments(node):
     experiments = []
@@ -45,31 +58,35 @@ def get_experiment(node, dt, wt, qd, np):
 
 #Crunch all observations
 all_observations = {}
-experiments = list_all_experiments('remote')
-#experiments = ["local_diff_core.json","local_same_core.json","local_stonewall.json","remote_diff_core.json","remote_same_core.json","remote_stonewall.json"]
+experiments = os.listdir(observation_dir)
+#experiments = ["remote_npoll_iou_SSD_randread_QD64_P1_4k"]
 for exp in experiments:
+    if "bpf" in exp or "crunched_numbers_performance.json" in exp:
+        continue
+
     try:
         with open(observation_dir+exp,'r') as f:
             print(exp)
             data = json.load(f)
+            initiator_cpu = get_cpu_avg(exp+"_initiator_cpu")
+            target_cpu = get_cpu_avg(exp+"_target_cpu")
             #latency
-            obs = data['jobs'][0]["write"]
+            operation = "read"
+            if "write" in exp:
+                operation = "write"
+            obs = data['jobs'][0][operation]
             obs_dict = {}
             obs_dict['latency'] = obs['clat_ns']
             obs_dict['iops'] = {'min':obs['iops_min'],'max':obs['iops_max'],'mean':obs['iops_mean'],'stddev':obs['iops_stddev'],'N':obs['iops_samples']}
             obs_dict['bw'] = {'min':obs['bw_min'],'max':obs['bw_max'],'mean':obs['bw_mean'],'stddev':obs['bw_dev'],'N':obs['bw_samples']}
-            all_observations[exp.split(".")[0]+"_"+"latency"] = obs_dict
-            #throughput
-            obs = data['jobs'][1]["read"]
-            obs_dict = {}
-            obs_dict['latency'] = obs['clat_ns']
-            obs_dict['iops'] = {'min':obs['iops_min'],'max':obs['iops_max'],'mean':obs['iops_mean'],'stddev':obs['iops_stddev'],'N':obs['iops_samples']}
-            obs_dict['bw'] = {'min':obs['bw_min'],'max':obs['bw_max'],'mean':obs['bw_mean'],'stddev':obs['bw_dev'],'N':obs['bw_samples']}
-            all_observations[exp.split(".")[0]+"_"+"throughput"] = obs_dict
+            obs_dict['fio_cpu'] = {'runtime':data['jobs'][0]['job_runtime'],'usr':data['jobs'][0]['usr_cpu'],'sys':data['jobs'][0]['sys_cpu'],'ctx':data['jobs'][0]['ctx']}
+            obs_dict['init_cpu'] = initiator_cpu
+            obs_dict['target_cpu'] = target_cpu
+            all_observations[exp.split(".")[0]] = obs_dict
     except:
         pass
 
 
 
-with open('crunched_numbers.json','w') as f:
+with open(observation_dir+'crunched_numbers_performance.json','w') as f:
     json.dump(all_observations, f)

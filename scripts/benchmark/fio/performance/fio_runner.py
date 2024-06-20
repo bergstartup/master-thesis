@@ -10,34 +10,45 @@ observation_dir="../../../../observations/performance/"
 confidence_level = 0.95
 error_bound = 0.05
 log_dir = "./logs/"
-NCPUS = 8
+NCPUS = 10
 node = sys.argv[1] #Either local or remote
 devices = {}
-devices["RAM"] = os.environ["S_DEVICE"]
+#devices["RAM"] = os.environ["S_DEVICE"]
 devices["SSD"] = os.environ["P_DEVICE"]
 
 #Define workload parameters
 workload_type = ["randread"]
 
-queue_depth = [2**i for i in range(8)]
-
-number_of_process = [1, 2, 4, 8]
-
+queue_depth = [2**i for i in range(9)]
+queue_depth = [i for i in range(1,128,2)]
+req_size = ["4k"]
+number_of_process = [1]
+iouring_type = ["iou"]
 
 def list_all_experiments():
     experiments = []
     #TODO: Change the order accordingly!
-    for dt in devices.keys():
-        for wt in workload_type:
-            for qd in queue_depth:
-                for np in number_of_process:
-                    parameters = {}
-                    parameters["DEVICE"] = devices[dt]
-                    parameters["WORKLOAD"] = wt
-                    parameters["QD"] = qd
-                    parameters["NPROCESS"] = np
-                    parameters["NAME"] = node+"_"+dt+"_"+wt+"_"+"QD"+str(qd)+"_"+"P"+str(np)
-                    experiments.append(parameters)
+    for rs in req_size:
+        for dt in devices.keys():
+            for wt in workload_type:
+                for qd in queue_depth:
+                    for np in number_of_process:
+                        for io in iouring_type:
+                            parameters = {}
+                            parameters["DEVICE"] = devices[dt]
+                            parameters["WORKLOAD"] = wt
+                            parameters["QD"] = qd
+                            parameters["NPROCESS"] = np
+                            parameters["CPUS"] = ','.join(map(str, [i for i in range(np)]))
+                            parameters["REQSIZE"] = rs
+                            parameters["SQPOLL"] = 0
+                            parameters["CPOLL"] = 0
+                            if 'p' in io:
+                                parameters["CPOLL"] = 1
+                            if 's' in io:
+                                parameters["SQPOLL"] = 1
+                            parameters["NAME"] = node+"_"+io+"_"+dt+"_"+wt+"_"+"QD"+str(qd)+"_"+"P"+str(np)+"_"+rs
+                            experiments.append(parameters)
     return experiments
 
 def set_experiment_parameters(parameters):
@@ -84,6 +95,10 @@ def statisticaly_valid(exp_name, entries):
     return True
 
 
+def run_yes():
+    p = subprocess.Popen(["taskset","-c","0","yes"], stdout=subprocess.DEVNULL)
+    return p
+
 def run_tcp_trace(fop):
     p = subprocess.Popen(["bpftrace","../../bpf/tcptrace.bt","-o",fop+"_bpf"])
     time.sleep(5)
@@ -118,18 +133,32 @@ for experiment_parameters in all_experiments:
 
     #Set the environemnt variables for the experiment
     set_experiment_parameters(experiment_parameters)
-    for iter_count in range(10, 16):
+    for iter_count in range(2, 16):
         #Set exp time
         os.environ["TIME"] = str(iter_count * 60) 
         print("Running experiment for (sec)",iter_count * 60)
         
         #run tcp_trace
         #p = run_tcp_trace(op)
+        #yes = []
+        #for i in range(experiment_parameters["BPROCESS"]):
+        #    yes.append(run_yes())
+        #Run target cpu util
+        subprocess.run(["curl","http://172.16.137.2:8080/start?id={}".format(experiment_parameters["NAME"]+"_target_cpu")]) 
+        #Run initiator cpu util
+        subprocess.run(["curl","http://127.0.0.1:8080/start?id={}".format(experiment_parameters["NAME"]+"_initiator_cpu")])
         #Run the fio
         run_fio("workload.fio", op, [i for i in range(experiment_parameters["NPROCESS"])])
-        #kill tcp_trace
-        #p.send_signal(signal.SIGINT)
+        #Kill initiator cpu util
+        subprocess.run(["curl","http://127.0.0.1:8080/stop?id={}".format(experiment_parameters["NAME"]+"_initiator_cpu")])
+        #Kill target cpu util
+        subprocess.run(["curl","http://172.16.137.2:8080/stop?id={}".format(experiment_parameters["NAME"]+"_target_cpu")])
 
+        #kill tcp_trace
+        #for i in yes:
+        #    i.send_signal(signal.SIGINT)
+        #p.send_signal(signal.SIGINT)
+        break
         #Parse the output to get latency, IOPS, bandwidth and percentile distribution 
         #Check the statistical validity with confirm tool
         if statisticaly_valid(experiment_parameters["NAME"], iter_count):

@@ -4,6 +4,7 @@ import urllib.parse
 import subprocess
 import threading
 import os
+import signal
 
 PORT = 8080
 processes = {}
@@ -25,7 +26,7 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
     def handle_start(self, query):
         if 'id' in query:
             id = query['id'][0]
-            command = "sar -P ALL 1 > {}".format(id)
+            command = "exec sar -P ALL 1 > {}".format(id)
             print("Start : ",id, command)
             if id in processes:
                 self.send_response(400)
@@ -50,7 +51,7 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
             print("Stop : ",id)
             if id in processes:
                 process = processes[id]
-                process.terminate()
+                process.send_signal(signal.SIGINT)
                 process.wait()
                 del processes[id]
                 
