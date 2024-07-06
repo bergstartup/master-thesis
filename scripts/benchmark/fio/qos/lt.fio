@@ -1,27 +1,24 @@
 [global]
-name=same_core_lt
+name=${NAME}
 time_based=1
-ramp_time=10
-runtime=120
-bs=4096B
+ramp_time=${WARMUP}
+runtime=${RUNTIME}
 ioengine=io_uring
+hipri = 1
 fixedbufs=1
 registerfiles=1
 direct=1
 
 [latency]
-prio=${LPRIO}
-nice=${LNICE}
+readwrite=${FOP}
 iodepth=1
-readwrite=write
-cpus_allowed=${LCPU}
-filename=${LDEVICE}
+numjobs=1
+bs=4k
+filename=${FDEVICE}
 
 [throughput]
-stonewall=${STONEWALL}
-prio=${TPRIO}
-nice=${TNICE}
+numjobs=${BCOUNT}
 iodepth=128
-readwrite=read
-cpus_allowed=${TCPU}
-filename=${TDEVICE}
+readwrite=${BOP}
+bs=${BBSIZE}
+filename=${BDEVICE}

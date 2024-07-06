@@ -11,34 +11,41 @@ confidence_level = 0.95
 error_bound = 0.05
 log_dir = "./logs/"
 
-node = sys.argv[1] #Either local or remote
-devices = {}
-devices["LDEVICE"] = "/dev/nvme1n1" #Set to SSD
-devices["TDEVICE"] = "/dev/nvme1n1" #Set to RAM
-#experiments = ["same_core", "nice_same_core", "nice_prio_same_core", "diff_core", "prio_diff_core", "stonewall"]
-experiments = ["nice_prio0_same_core","nice_prio1_same_core","nice_prio2_same_core","nice_prio3_same_core","nice_prio4_same_core"]
+node = sys.argv[1] #type_fop_bop
+number_of_bprocess = [2**i for i in range(7)]
+block_size_of_bprocess = ["4k","64k"]
+
+bop = "randread"
+if "bwrite" in node:
+    bop = "randwrite"
+
+fop = "randread"
+runtime = "120"
+warmup = "60"
+if "fwrite" in node:
+    fop = "randwrite"
+    runtime = str(5*60)
+    warmup = str(5*60)
+
+
+def list_all_experiments():
+    experiments = []
+    for bbs in block_size_of_bprocess:
+        for bp in number_of_bprocess:
+            pmtrs = {}
+            pmtrs["BBSIZE"] = bbs
+            pmtrs["BCOUNT"] = str(bp)
+            pmtrs["FDEVICE"] = "/dev/nvme4n1"
+            pmtrs["BDEVICE"] = "/dev/nvme4n1"
+            pmtrs["FOP"] = fop
+            pmtrs["BOP"] = bop
+            pmtrs["NAME"] = "{}_SSD_BP{}_BS{}".format(node, bp, bbs)
+            experiments.append(pmtrs)
+    return experiments
+
 def set_experiment_parameters(parameters):
-    os.environ["LDEVICE"] = devices["LDEVICE"]
-    os.environ["TDEVICE"] = devices["TDEVICE"]
-    os.environ["LCPU"] = "0"
-    os.environ["TCPU"] = "0"
-    os.environ["STONEWALL"] = "0" 
-    #Set to default NICE and IONICE value
-    os.environ["LNICE"] = "0"
-    os.environ["TNICE"] = "0"
-    os.environ["LPRIO"] = "4"
-    os.environ["TPRIO"] = "4"
-    if "diff" in parameters:
-        os.environ["TCPU"] = "1"
-    if "nice" in parameters:
-        os.environ["LNICE"] = "-19"
-    if "prio" in parameters:
-        for i in range(4):
-            if str(i) in parameters:
-                os.environ["LPRIO"] = str(i)
-                break
-    if "stonewall" in parameters:
-        os.environ["STONEWALL"] = "1"
+    for key in parameters.keys():
+        os.environ[key] = parameters[key]
 
 def run_fio(fio, op):
     with open(op, 'w') as File:
@@ -72,34 +79,37 @@ def statisticaly_valid(exp_name, entries):
 
 
 #**************Main***********************
-#Execute pre conditioning
-for device in devices.keys(): 
-    break
-    erase_and_pre_condition(devices[device])
-
-
-
-
+experiments = list_all_experiments()
 count_experiment = 0
 total_experiments = len(experiments)
 print("Total number of experiments : ", total_experiments)
 for experiment_parameters in experiments:
     count_experiment += 1
     print("***************************************************")
-    print("Experiment({}/{}):".format(count_experiment, total_experiments),experiment_parameters)
-    
+    print("Experiment({}/{}):".format(count_experiment, total_experiments),experiment_parameters["NAME"])
     #Get output file name
-    output_file_name = node + experiment_parameters + ".json"
+    output_file_name = experiment_parameters["NAME"] + ".json"
     op = observation_dir + output_file_name
 
     #Set the environemnt variables for the experiment
     set_experiment_parameters(experiment_parameters)
     for iter_count in range(1, 16):
+        os.environ["RUNTIME"] = runtime
+        os.environ["WARMUP"] = warmup
+
         #Run the fio
-        print("{}) Executing experiment".format(iter_count))
+        print("{}) Executing experiment".format(iter_count)) 
+        
+        #Start CPU usage 
+        subprocess.run(["curl","http://172.16.137.2:8080/start?id={}".format(experiment_parameters["NAME"]+"_target_cpu")]) 
+        subprocess.run(["curl","http://127.0.0.1:8080/start?id={}".format(experiment_parameters["NAME"]+"_initiator_cpu")])
         run_fio("lt.fio", op)
+        #Stop CPU usage
+        subprocess.run(["curl","http://127.0.0.1:8080/stop?id={}".format(experiment_parameters["NAME"]+"_initiator_cpu")])
+        subprocess.run(["curl","http://172.16.137.2:8080/stop?id={}".format(experiment_parameters["NAME"]+"_target_cpu")])
 
         #Parse the output to get latency, IOPS, bandwidth and percentile distribution 
         #Check the statistical validity with confirm tool
         if statisticaly_valid(experiment_parameters, iter_count * 5):
             break
+        break
