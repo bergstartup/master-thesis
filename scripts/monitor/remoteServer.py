@@ -18,11 +18,21 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_start(query)
         elif parsed_path.path == '/stop':
             self.handle_stop(query)
+        elif parsed_path.path == '/sched':
+            self.handle_sched(query)
         else:
             self.send_response(404)
             self.end_headers()
             self.wfile.write(b"Invalid endpoint")
     
+    def handle_sched(self, query):
+        if 'sched' in query:
+            sched = query['sched'][0]
+            device = query['dev'][0]
+            command = "echo {} | sudo tee -a /sys/block/{}/queue/scheduler".format(sched, device)
+            subprocess.run(command.split(" "))
+            print(command)
+
     def handle_start(self, query):
         if 'id' in query:
             id = query['id'][0]
