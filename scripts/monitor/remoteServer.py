@@ -30,7 +30,7 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
             sched = query['sched'][0]
             device = query['dev'][0]
             command = "echo {} | sudo tee -a /sys/block/{}/queue/scheduler".format(sched, device)
-            subprocess.run(command.split(" "))
+            subprocess.run(command, shell=True)
             print(command)
 
     def handle_start(self, query):
