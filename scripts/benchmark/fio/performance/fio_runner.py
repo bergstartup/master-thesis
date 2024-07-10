@@ -10,25 +10,45 @@ observation_dir="../../../../observations/performance/"
 confidence_level = 0.95
 error_bound = 0.05
 log_dir = "./logs/"
-NCPUS = 10
+NCPUS = 16
 node = sys.argv[1] #Either local or remote
 devices = {}
-#devices["RAM"] = os.environ["S_DEVICE"]
-devices["SSD"] = os.environ["P_DEVICE"]
+devices["SSD"] = "/dev/nvme4n1"
 
 #Define workload parameters
 workload_type = ["randread"]
-
-queue_depth = [2**i for i in range(9)]
-queue_depth = [i for i in range(1,128,2)]
 req_size = ["4k"]
+iouring_type = ["ioup"]
+
+queue_depth = [2**i for i in range(10)]
 number_of_process = [1]
-iouring_type = ["iou"]
+use_cpu = "0"
+
+
+if "perf" in node:
+    number_of_process = [1, 4, 8]
+    use_cpu = "0, 1, 2, 3, 4, 5, 6, 7, 8, 9"
+    #req_size = ["4k","8k","16k","32k","64k","128k"]
+
+if "lhead" in node:
+    if "inter" in node:
+        queue_depth = [1]
+        number_of_process = [2**i for i in range(10)]
+    if "nopin" in node:
+        use_cpu = "0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15"
+
+if "thead" in node:
+    queue_depth = [128]
+    number_of_process = [1, 2, 4, 8, 10]
+    use_cpu = "0, 1, 2, 3, 4, 5, 6, 7, 8, 9"
 
 def list_all_experiments():
     experiments = []
     #TODO: Change the order accordingly!
+    global number_of_process
     for rs in req_size:
+        if rs != "4k":
+            number_of_process = [1]
         for dt in devices.keys():
             for wt in workload_type:
                 for qd in queue_depth:
@@ -38,8 +58,8 @@ def list_all_experiments():
                             parameters["DEVICE"] = devices[dt]
                             parameters["WORKLOAD"] = wt
                             parameters["QD"] = qd
+                            parameters["CPUS"] = use_cpu
                             parameters["NPROCESS"] = np
-                            parameters["CPUS"] = ','.join(map(str, [i for i in range(np)]))
                             parameters["REQSIZE"] = rs
                             parameters["SQPOLL"] = 0
                             parameters["CPOLL"] = 0
@@ -56,9 +76,8 @@ def set_experiment_parameters(parameters):
         os.environ[key] = str(parameters[key])
 
 def run_fio(fio, op, cpus = [i for i in range(NCPUS)]):
-    cpu_string = ','.join(map(str, cpus))
     with open(op, 'w') as File:
-        subprocess.run("taskset -c {} fio --output-format=json {}".format(cpu_string, fio), shell=True, text=True, stdout=File)
+        subprocess.run("fio --output-format=json {}".format(fio), shell=True, text=True, stdout=File)
 
 
 def erase_and_pre_condition(device):
@@ -126,7 +145,7 @@ for experiment_parameters in all_experiments:
     count_experiment += 1
     print("***************************************************")
     print("Experiment({}/{}):".format(count_experiment, total_experiments),experiment_parameters["NAME"])
-    
+
     #Get output file name
     output_file_name = experiment_parameters["NAME"]
     op = observation_dir + output_file_name
@@ -148,7 +167,8 @@ for experiment_parameters in all_experiments:
         #Run initiator cpu util
         subprocess.run(["curl","http://127.0.0.1:8080/start?id={}".format(experiment_parameters["NAME"]+"_initiator_cpu")])
         #Run the fio
-        run_fio("workload.fio", op, [i for i in range(experiment_parameters["NPROCESS"])])
+        #run_fio("workload.fio", op, [i for i in range(experiment_parameters["NPROCESS"])])
+        run_fio("workload.fio", op)
         #Kill initiator cpu util
         subprocess.run(["curl","http://127.0.0.1:8080/stop?id={}".format(experiment_parameters["NAME"]+"_initiator_cpu")])
         #Kill target cpu util

@@ -13,7 +13,6 @@ ioengine=io_uring
 fixedbufs=1
 registerfiles=1
 sqthread_poll=${SQPOLL}
-#sqthread_poll_cpu=0
 hipri=${CPOLL}
 direct=1
 cpus_allowed_policy=split

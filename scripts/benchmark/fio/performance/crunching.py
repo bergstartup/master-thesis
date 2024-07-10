@@ -18,7 +18,12 @@ devices = ["RAM", "SSD"]
 def get_cpu_avg(exp):
     util = {}
     with open(cpu_util_dir+exp,"r") as f:
-        lines = f.readlines()[-11:]
+        lines = f.readlines()[-18:]
+        if "iowait" not in lines[0]:
+            lines = lines[-11:]
+        else:
+            lines = lines[-17:]
+
         for line in lines:
             obs = line.split()
             cpu = obs[1]
@@ -58,6 +63,9 @@ def get_experiment(node, dt, wt, qd, np):
 
 #Crunch all observations
 all_observations = {}
+with open(observation_dir+'crunched_numbers_performance.json','r') as f:
+    all_observations = json.load(f)
+    
 experiments = os.listdir(observation_dir)
 #experiments = ["remote_npoll_iou_SSD_randread_QD64_P1_4k"]
 for exp in experiments:
@@ -66,10 +74,8 @@ for exp in experiments:
 
     try:
         with open(observation_dir+exp,'r') as f:
-            print(exp)
             data = json.load(f)
-            initiator_cpu = get_cpu_avg(exp+"_initiator_cpu")
-            target_cpu = get_cpu_avg(exp+"_target_cpu")
+            
             #latency
             operation = "read"
             if "write" in exp:
@@ -80,11 +86,17 @@ for exp in experiments:
             obs_dict['iops'] = {'min':obs['iops_min'],'max':obs['iops_max'],'mean':obs['iops_mean'],'stddev':obs['iops_stddev'],'N':obs['iops_samples']}
             obs_dict['bw'] = {'min':obs['bw_min'],'max':obs['bw_max'],'mean':obs['bw_mean'],'stddev':obs['bw_dev'],'N':obs['bw_samples']}
             obs_dict['fio_cpu'] = {'runtime':data['jobs'][0]['job_runtime'],'usr':data['jobs'][0]['usr_cpu'],'sys':data['jobs'][0]['sys_cpu'],'ctx':data['jobs'][0]['ctx']}
-            obs_dict['init_cpu'] = initiator_cpu
-            obs_dict['target_cpu'] = target_cpu
+            if "local" not in exp:
+                initiator_cpu = get_cpu_avg(exp+"_initiator_cpu")
+                target_cpu = get_cpu_avg(exp+"_target_cpu")
+                obs_dict['init_cpu'] = initiator_cpu
+                obs_dict['target_cpu'] = target_cpu
+            else:
+                local_cpu = get_cpu_avg(exp+"_local_cpu")
+                obs_dict['local_cpu'] = local_cpu
             all_observations[exp.split(".")[0]] = obs_dict
-    except:
-        pass
+    except Exception as e:
+        print(exp, e)
 
 
 
