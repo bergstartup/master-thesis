@@ -20,11 +20,20 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_stop(query)
         elif parsed_path.path == '/sched':
             self.handle_sched(query)
+        elif parsed_path.path == '/poll':
+            self.handle_poll(query)
         else:
             self.send_response(404)
             self.end_headers()
             self.wfile.write(b"Invalid endpoint")
     
+    def handle_poll(self, query):
+        if 'poll' in query:
+            poll = query['poll'][0]
+            command = "echo {} | sudo tee -a /sys/module/nvmet_tcp/parameters/idle_poll_period_usecs".format(poll)
+            subprocess.run(command, shell=True)
+            print(command)
+
     def handle_sched(self, query):
         if 'sched' in query:
             sched = query['sched'][0]
