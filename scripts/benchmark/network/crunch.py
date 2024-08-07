@@ -15,11 +15,16 @@ for i in files:
             bw =  d["end"]["sum_sent"]["bits_per_second"]
             #mbps to GBps
             bw = bw/(8*(1024**3))
-            try:
-                crunched_numbers[i.split("_")[2]][i.split("_")[1]] = bw
-            except:
-                crunched_numbers[i.split("_")[2]] = {}
-                crunched_numbers[i.split("_")[2]][i.split("_")[1]] = bw
+            
+            cwnd = 0
+            all_streams = d["end"]["streams"]
+            for j in all_streams:
+                cwnd += j["sender"]["max_snd_cwnd"]
+            cwnd /= len(all_streams)
+
+            retransmits = d["end"]["sum_sent"]["retransmits"]
+
+            crunched_numbers[i] = {"bw":bw,"rt":retransmits,"avg_win":cwnd}
     except Exception as e:
         print(i, e)
 
