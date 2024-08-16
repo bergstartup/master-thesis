@@ -12,10 +12,8 @@ error_bound = 0.05
 log_dir = "./logs/"
 
 node = sys.argv[1] #type_fop_bop
-#number_of_bprocess = [0]
-#block_size_of_bprocess = ["4k","64k"]
-number_of_bprocess = [7, 8, 9]
-block_size_of_bprocess = ["4k","64k"]
+number_of_bprocess = [0, 1, 2, 4, 8, 10, 12]
+block_size_of_bprocess = ["4k"]
 
 bop = "randread"
 if "bwrite" in node:
@@ -29,6 +27,20 @@ if "fwrite" in node:
     runtime = str(5*60)
     warmup = str(5*60)
 
+fpoll = "0"
+if "poll" in node:
+    fpoll = "1"
+
+fprio = "4"
+if "prio" in node:
+    fprio = "0"
+
+fnice = "0"
+if "nice20" in node:
+    fnice = "-20"
+
+if "nice10" in node:
+    fnice = "-10"
 
 def list_all_experiments():
     experiments = []
@@ -37,10 +49,13 @@ def list_all_experiments():
             pmtrs = {}
             pmtrs["BBSIZE"] = bbs
             pmtrs["BCOUNT"] = str(bp)
-            pmtrs["FDEVICE"] = "/dev/nvme0n1"
+            pmtrs["FDEVICE"] = "/dev/nvme1n1"
             pmtrs["BDEVICE"] = "/dev/nvme1n1"
             pmtrs["FOP"] = fop
             pmtrs["BOP"] = bop
+            pmtrs["FNICE"] = fnice
+            pmtrs["FPRIO"] = fprio
+            pmtrs["FPOLL"] = fpoll
             pmtrs["NAME"] = "{}_SSD_BP{}_BS{}".format(node, bp, bbs)
             experiments.append(pmtrs)
     return experiments
@@ -103,12 +118,13 @@ for experiment_parameters in experiments:
         print("{}) Executing experiment".format(iter_count)) 
         
         #Start CPU usage 
-        subprocess.run(["curl","http://172.16.137.2:8080/start?id={}".format(experiment_parameters["NAME"]+"_target_cpu")]) 
-        subprocess.run(["curl","http://127.0.0.1:8080/start?id={}".format(experiment_parameters["NAME"]+"_initiator_cpu")])
-        run_fio("lt.fio", op)
+        subprocess.run(["curl","http://127.0.0.1:8080/start?id={}".format(experiment_parameters["NAME"]+"_local_cpu")])
+        if experiment_parameters["BCOUNT"] == "0":
+            run_fio("lt0.fio", op)
+        else:
+            run_fio("lt.fio", op)
         #Stop CPU usage
-        subprocess.run(["curl","http://127.0.0.1:8080/stop?id={}".format(experiment_parameters["NAME"]+"_initiator_cpu")])
-        subprocess.run(["curl","http://172.16.137.2:8080/stop?id={}".format(experiment_parameters["NAME"]+"_target_cpu")])
+        subprocess.run(["curl","http://127.0.0.1:8080/stop?id={}".format(experiment_parameters["NAME"]+"_local_cpu")])
 
         #Parse the output to get latency, IOPS, bandwidth and percentile distribution 
         #Check the statistical validity with confirm tool

@@ -1,1 +1,5 @@
-python3 fio_runner.py remote_isolate_fread_bread
+#./baseline.sh
+#./lappPoll.sh
+#./scheduler.sh
+./prio.sh
+./nice.sh
