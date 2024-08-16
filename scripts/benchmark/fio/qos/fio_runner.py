@@ -12,7 +12,9 @@ error_bound = 0.05
 log_dir = "./logs/"
 
 node = sys.argv[1] #type_fop_bop
-number_of_bprocess = [2**i for i in range(7)]
+#number_of_bprocess = [0]
+#block_size_of_bprocess = ["4k","64k"]
+number_of_bprocess = [7, 8, 9]
 block_size_of_bprocess = ["4k","64k"]
 
 bop = "randread"
@@ -35,8 +37,8 @@ def list_all_experiments():
             pmtrs = {}
             pmtrs["BBSIZE"] = bbs
             pmtrs["BCOUNT"] = str(bp)
-            pmtrs["FDEVICE"] = "/dev/nvme4n1"
-            pmtrs["BDEVICE"] = "/dev/nvme4n1"
+            pmtrs["FDEVICE"] = "/dev/nvme0n1"
+            pmtrs["BDEVICE"] = "/dev/nvme1n1"
             pmtrs["FOP"] = fop
             pmtrs["BOP"] = bop
             pmtrs["NAME"] = "{}_SSD_BP{}_BS{}".format(node, bp, bbs)

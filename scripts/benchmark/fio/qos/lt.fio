@@ -14,6 +14,7 @@ readwrite=${FOP}
 iodepth=1
 numjobs=1
 bs=4k
+cpus_allowed=0
 filename=${FDEVICE}
 
 [throughput]
@@ -21,4 +22,5 @@ numjobs=${BCOUNT}
 iodepth=128
 readwrite=${BOP}
 bs=${BBSIZE}
+cpus_allowed=1-9
 filename=${BDEVICE}

@@ -10,10 +10,10 @@ observation_dir="../../../../observations/performance/"
 confidence_level = 0.95
 error_bound = 0.05
 log_dir = "./logs/"
-NCPUS = 16
+NCPUS = 10
 node = sys.argv[1] #Either local or remote
 devices = {}
-devices["SSD"] = "/dev/nvme4n1"
+devices["SSD"] = "/dev/nvme0n1"
 
 #Define workload parameters
 workload_type = ["randread"]
@@ -24,18 +24,25 @@ queue_depth = [2**i for i in range(10)]
 number_of_process = [1]
 use_cpu = "0"
 
-
 if "perf" in node:
-    number_of_process = [1, 4, 8]
+    number_of_process = [2,3,4,5,6,7,8,9]
     use_cpu = "0, 1, 2, 3, 4, 5, 6, 7, 8, 9"
-    #req_size = ["4k","8k","16k","32k","64k","128k"]
+    req_size = ["4k","64K"]
+    queue_depth = [128]
+
+#For limited queue pairs
+if "qp_" in node:
+    number_of_process = [4, 8]
+    use_cpu = "0, 1, 2, 3, 4, 5, 6, 7, 8, 9"
+    queue_depth = [128]
+    req_size = ["4k"]
 
 if "lhead" in node:
     if "inter" in node:
         queue_depth = [1]
         number_of_process = [2**i for i in range(10)]
     if "nopin" in node:
-        use_cpu = "0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15"
+        use_cpu = "0, 1, 2, 3, 4, 5, 6, 7, 8, 9"
 
 if "thead" in node:
     queue_depth = [128]
@@ -47,8 +54,6 @@ def list_all_experiments():
     #TODO: Change the order accordingly!
     global number_of_process
     for rs in req_size:
-        if rs != "4k":
-            number_of_process = [1]
         for dt in devices.keys():
             for wt in workload_type:
                 for qd in queue_depth:
@@ -58,6 +63,7 @@ def list_all_experiments():
                             parameters["DEVICE"] = devices[dt]
                             parameters["WORKLOAD"] = wt
                             parameters["QD"] = qd
+                            #parameters["CPUS"] = ",".join([str(i) for i in range(np)])
                             parameters["CPUS"] = use_cpu
                             parameters["NPROCESS"] = np
                             parameters["REQSIZE"] = rs
@@ -152,7 +158,7 @@ for experiment_parameters in all_experiments:
 
     #Set the environemnt variables for the experiment
     set_experiment_parameters(experiment_parameters)
-    for iter_count in range(2, 16):
+    for iter_count in range(3, 16):
         #Set exp time
         os.environ["TIME"] = str(iter_count * 60) 
         print("Running experiment for (sec)",iter_count * 60)

@@ -12,7 +12,6 @@ for exp in experiments:
         continue
     try:
         with open(observation_dir+exp,'r') as f:
-            print(exp)
             data = json.load(f)
             #latency
             obs = data['jobs'][0]["read"]
@@ -31,7 +30,7 @@ for exp in experiments:
             all_observations[exp.split(".")[0]+"_"+"throughput"] = obs_dict
             """
     except:
-        pass
+        print(exp)
 
 
 
