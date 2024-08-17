@@ -49,8 +49,8 @@ def list_all_experiments():
             pmtrs = {}
             pmtrs["BBSIZE"] = bbs
             pmtrs["BCOUNT"] = str(bp)
-            pmtrs["FDEVICE"] = "/dev/nvme1n1"
-            pmtrs["BDEVICE"] = "/dev/nvme1n1"
+            pmtrs["FDEVICE"] = "/dev/nvme0n1"
+            pmtrs["BDEVICE"] = "/dev/nvme0n1"
             pmtrs["FOP"] = fop
             pmtrs["BOP"] = bop
             pmtrs["FNICE"] = fnice
