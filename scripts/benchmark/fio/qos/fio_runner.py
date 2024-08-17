@@ -13,7 +13,7 @@ log_dir = "./logs/"
 
 node = sys.argv[1] #type_fop_bop
 number_of_bprocess = [0, 1, 2, 4, 8, 10, 12]
-block_size_of_bprocess = ["4k"]
+block_size_of_bprocess = ["4k","64k"]
 
 bop = "randread"
 if "bwrite" in node:
@@ -31,13 +31,13 @@ fpoll = "0"
 if "poll" in node:
     fpoll = "1"
 
-fprio = "4"
+fprio = "2"
 if "prio" in node:
-    fprio = "0"
+    fprio = "1"
 
 fnice = "0"
 if "nice20" in node:
-    fnice = "-20"
+    fnice = "-19"
 
 if "nice10" in node:
     fnice = "-10"
