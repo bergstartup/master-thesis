@@ -4,7 +4,7 @@ import sys
 import subprocess
 #import confirm_tool
 import signal
-
+import re
 
 observation_dir="../../../../observations/qos/"
 confidence_level = 0.95
@@ -12,8 +12,8 @@ error_bound = 0.05
 log_dir = "./logs/"
 
 node = sys.argv[1] #type_fop_bop
-number_of_bprocess = [0, 1, 2, 4, 8, 10, 12]
-block_size_of_bprocess = ["4k","64k"]
+number_of_bprocess = [0, 1, 2, 4, 8, 10, 20, 30]
+block_size_of_bprocess = ["4k"] #,"64k"]
 
 bop = "randread"
 if "bwrite" in node:
@@ -32,15 +32,16 @@ if "poll" in node:
     fpoll = "1"
 
 fprio = "2"
-if "prio" in node:
-    fprio = "1"
+match = re.search(r'prio(\d+)', node)
+if match:
+    prio = match.group(1)
+    fprio = "{}".format(prio)
 
 fnice = "0"
-if "nice20" in node:
-    fnice = "-19"
-
-if "nice10" in node:
-    fnice = "-10"
+match = re.search(r'nice(\d+)', node)
+if match:
+    nice = match.group(1)
+    fnice = "-{}".format(nice)
 
 def list_all_experiments():
     experiments = []
@@ -117,6 +118,11 @@ for experiment_parameters in experiments:
         #Run the fio
         print("{}) Executing experiment".format(iter_count)) 
         
+        #Run bpf 
+        #"curl 127.0.0.1:8080/smbench?id=micro"
+        
+        #subprocess.run(["curl","http://127.0.0.1:8080/mbench?id={}".format(experiment_parameters["NAME"]+"_initiator_micro")])
+        #time.sleep(30)
         #Start CPU usage 
         subprocess.run(["curl","http://127.0.0.1:8080/start?id={}".format(experiment_parameters["NAME"]+"_local_cpu")])
         if experiment_parameters["BCOUNT"] == "0":
@@ -126,6 +132,7 @@ for experiment_parameters in experiments:
         #Stop CPU usage
         subprocess.run(["curl","http://127.0.0.1:8080/stop?id={}".format(experiment_parameters["NAME"]+"_local_cpu")])
 
+        #subprocess.run(["curl","http://127.0.0.1:8080/smbench?id={}".format(experiment_parameters["NAME"]+"_initiator_micro")])
         #Parse the output to get latency, IOPS, bandwidth and percentile distribution 
         #Check the statistical validity with confirm tool
         if statisticaly_valid(experiment_parameters, iter_count * 5):
