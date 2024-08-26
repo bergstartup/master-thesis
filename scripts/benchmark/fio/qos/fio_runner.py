@@ -32,10 +32,8 @@ if "poll" in node:
     fpoll = "1"
 
 fprio = "2"
-match = re.search(r'prio(\d+)', node)
-if match:
-    prio = match.group(1)
-    fprio = "{}".format(prio)
+if "prio" in node:
+    fprio = "0"
 
 fnice = "0"
 match = re.search(r'nice(\d+)', node)

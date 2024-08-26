@@ -1,0 +1,46 @@
+#!/usr/bin/bpftrace
+
+#include<string.h>
+kfunc:dd_init_sched {
+ $rqq = (struct request_queue * )args.q;
+ printf("Number of hw queue : %d\n",$rqq->nr_hw_queues);
+}
+
+/*
+kfunc:blk_mq_submit_bio {
+ $bio = (struct bio *) args.bio;
+ if(strncmp(comm,"fio",3)==0) {
+  printf("Plug : %p\n",curtask->plug);
+  printf("Bio flags : %d\n", $bio->bi_opf);
+ }
+}
+kfunc:nvme_tcp_poll {
+ $entry = nsecs;
+ $lastEntry = @pollMeta[pid].0;
+ $diff = @pollMeta[pid].1 + ($entry - $lastEntry);
+ $count = @pollMeta[pid].2 + 1;
+ if($lastEntry == 0) {
+  $diff = 0;
+  $count = 0;
+ }
+ @pollMeta[pid] = ($entry, $diff, $count);
+}
+
+kretprobe:nvme_tcp_poll {
+ 
+}
+*/
+
+kretprobe:schedule {
+ if(strncmp(comm,"fio",3) == 0) {
+  $entry = nsecs;
+  $lastEntry = @pollMeta[pid].0;
+  $diff = @pollMeta[pid].1 + ($entry - $lastEntry);
+  $count = @pollMeta[pid].2 + 1;
+  if($lastEntry == 0) {
+   $diff = 0;
+   $count = 0;
+  }
+  @pollMeta[pid] = ($entry, $diff, $count);
+ }
+}
