@@ -26,6 +26,10 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_bpf(query)
         elif parsed_path.path == '/sbpf':
             self.handle_sbpf(query)
+        elif parsed_path.path == "/fctrl":
+            self.handle_fctrl(query)
+        elif parsed_path.path == "/remfctrl":
+            self.handle_rfctrl(query)
         else:
             self.send_response(404)
             self.end_headers()
@@ -112,6 +116,19 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
         self.wfile.write(f"Stopped process with ID: {id}\n".encode())
+
+    def handle_fctrl(self, query):
+        port = query['port'][0]
+        id = query['id'][0]
+        queue = query['q'][0]
+        command = "exec ../setup/flow_control.sh {} {} {}".format(port, id, queue)
+        subprocess.run(command, shell=True)
+
+    def handle_rfctrl(self, query):
+        total = query['total']
+        for i in range(total):
+            command = "exec ethtool -N ens6np0 delete {}".format(i)
+            subprocess.run(command, shell=True)
 
 def run_server():
     with socketserver.TCPServer(("", PORT), MyRequestHandler) as httpd:
