@@ -36,10 +36,11 @@ kfunc:sch_direct_xmit {
  $dev = (struct net_device *) args.dev;
  $q = (struct Qdisc *) args.q;
  $qdisc = $q->qstats;
- if(strncmp(comm, "fio", 3) == 0) {
+ if($dev->mtu == 9000) {
   //printf("Stats : len : %d, bl: %d, dr: %d, rq: %d, ol:%d\n",$qdisc.qlen,$qdisc.backlog,
   //$qdisc.drops, $qdisc.requeues, $qdisc.overlimits);
-  @net_tx_queue_stats[cpu] = (pid, $qdisc.qlen,$qdisc.backlog,
+  $count = @net_tx_queue_stats[cpu].0 + (uint64)1;
+  @net_tx_queue_stats[cpu] = ($count, $qdisc.qlen,$qdisc.backlog,
   $qdisc.drops, $qdisc.requeues, $qdisc.overlimits);
   //printf("%ld %ld : ", $stats->bytes.v.a, $stats->packets.v.a);
  }
