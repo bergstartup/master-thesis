@@ -22,6 +22,10 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_sched(query)
         elif parsed_path.path == '/poll':
             self.handle_poll(query)
+        elif parsed_path.path == '/bpf':
+            self.handle_bpf(query)
+        elif parsed_path.path == '/sbpf':
+            self.handle_sbpf(query)
         else:
             self.send_response(404)
             self.end_headers()
@@ -85,6 +89,29 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(400)
             self.end_headers()
             self.wfile.write(b"Missing id parameter")
+    
+    def handle_bpf(self, query):
+        id = query['id'][0]
+        script = query['script'][0]
+        command = "exec ../bpf/{} > {}".format(script,id)
+        print("Start : ",id, command)
+        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        processes[id] = process
+
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(f"Started process with ID: {id}\n".encode())
+
+    def handle_sbpf(self, query):
+        id = query['id'][0]
+        proc = processes[id]
+        #pgid = os.getpgid(proc.pid)
+        #os.killpg(pgid, signal.SIGINT)
+        proc.send_signal(signal.SIGINT)
+        proc.wait()
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(f"Stopped process with ID: {id}\n".encode())
 
 def run_server():
     with socketserver.TCPServer(("", PORT), MyRequestHandler) as httpd:
