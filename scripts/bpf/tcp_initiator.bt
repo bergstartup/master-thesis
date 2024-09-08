@@ -40,6 +40,20 @@ kfunc:tcp_v4_rcv
     	}
 }
 
+
+kfunc:ip_output
+{
+	$skb = (struct sk_buff *)args.skb;
+	$sk = ((struct sock *) $skb->sk);
+
+        $cip = (uint32)pton("172.16.137.2");
+
+        // Filter packets by IP address
+        if ($sk->__sk_common.skc_daddr == $cip) {
+        	//printf("Data len : %d\n", $skb->data_len);
+	}
+}
+
 END
 {
 }

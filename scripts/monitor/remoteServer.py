@@ -30,6 +30,8 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_fctrl(query)
         elif parsed_path.path == "/remfctrl":
             self.handle_rfctrl(query)
+        elif parsed_path.path == "/rss":
+            self.handle_rss(query)
         else:
             self.send_response(404)
             self.end_headers()
@@ -116,6 +118,11 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
         self.wfile.write(f"Stopped process with ID: {id}\n".encode())
+
+    def handle_rss(self, query):
+        count = query['count'][0]
+        command = "exec ethtool -X ens6np0 start 0 equal {}".format(count)
+        subprocess.run(command, shell=True)
 
     def handle_fctrl(self, query):
         port = query['port'][0]

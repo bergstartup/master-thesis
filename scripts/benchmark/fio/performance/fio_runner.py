@@ -25,9 +25,16 @@ number_of_process = [1]
 use_cpu = "0"
 
 if "perf" in node:
-    number_of_process = [2,3,4,5,6,7,8,9]
+    number_of_process = [1,2,3,4,5,6,7,8,9]
     use_cpu = "0, 1, 2, 3, 4, 5, 6, 7, 8, 9"
     req_size = ["4k","64K"]
+    queue_depth = [2**i for i in range(9)]
+
+
+if "target" in node:
+    number_of_process = [10]
+    use_cpu = "0, 1, 2, 3, 4, 5, 6, 7, 8, 9"
+    req_size = ["4k"]
     queue_depth = [128]
 
 #For limited queue pairs
@@ -37,6 +44,8 @@ if "qp_" in node:
     queue_depth = [128]
     req_size = ["4k"]
 
+
+#Why did I do this?
 if "lhead" in node:
     if "inter" in node:
         queue_depth = [1]
