@@ -12,8 +12,10 @@ error_bound = 0.05
 log_dir = "./logs/"
 
 node = sys.argv[1] #type_fop_bop
-number_of_bprocess = [0, 1, 2, 4, 8, 10, 20, 30]
-block_size_of_bprocess = ["4k"] #,"64k"]
+number_of_bprocess = [0, 1, 2, 4, 8, 16, 32]
+block_size_of_bprocess = ["4k", "64k"]
+
+RUNS = 3
 
 bop = "randread"
 if "bwrite" in node:
@@ -45,18 +47,20 @@ def list_all_experiments():
     experiments = []
     for bbs in block_size_of_bprocess:
         for bp in number_of_bprocess:
-            pmtrs = {}
-            pmtrs["BBSIZE"] = bbs
-            pmtrs["BCOUNT"] = str(bp)
-            pmtrs["FDEVICE"] = "/dev/nvme0n1"
-            pmtrs["BDEVICE"] = "/dev/nvme0n1"
-            pmtrs["FOP"] = fop
-            pmtrs["BOP"] = bop
-            pmtrs["FNICE"] = fnice
-            pmtrs["FPRIO"] = fprio
-            pmtrs["FPOLL"] = fpoll
-            pmtrs["NAME"] = "{}_SSD_BP{}_BS{}".format(node, bp, bbs)
-            experiments.append(pmtrs)
+            for i in range(1,RUNS+1):
+                pmtrs = {}
+                pmtrs["BBSIZE"] = bbs
+                pmtrs["BCOUNT"] = str(bp)
+                pmtrs["FDEVICE"] = "/dev/nvme0n1"
+                pmtrs["BDEVICE"] = "/dev/nvme0n1"
+                pmtrs["FOP"] = fop
+                pmtrs["BOP"] = bop
+                pmtrs["FNICE"] = fnice
+                pmtrs["FPRIO"] = fprio
+                pmtrs["FPOLL"] = fpoll
+                pmtrs["RUN"] = str(i)
+                pmtrs["NAME"] = "{}_SSD_BP{}_BS{}_RUN{}".format(node, bp, bbs, i)
+                experiments.append(pmtrs)
     return experiments
 
 def set_experiment_parameters(parameters):
@@ -117,20 +121,28 @@ for experiment_parameters in experiments:
         print("{}) Executing experiment".format(iter_count)) 
         
         #Run bpf 
-        #"curl 127.0.0.1:8080/smbench?id=micro"
+        #"curl 127.0.0.1:8080/bpf?script={SCRIPT}&id={NAME}"
+        #subprocess.run(["curl","http://127.0.0.1:8080/bpf?script={}&id={}".format("blk_initiator_processing.bt",experiment_parameters["NAME"]+"_initiator_reqprocesstime")])
         
-        #subprocess.run(["curl","http://127.0.0.1:8080/mbench?id={}".format(experiment_parameters["NAME"]+"_initiator_micro")])
-        #time.sleep(30)
         #Start CPU usage 
-        subprocess.run(["curl","http://127.0.0.1:8080/start?id={}".format(experiment_parameters["NAME"]+"_local_cpu")])
+        #subprocess.run(["curl","http://127.0.0.1:8080/start?id={}".format(experiment_parameters["NAME"]+"_local_cpu")])
+        
+        #Start the target micro
+        #subprocess.run(["curl","http://172.16.137.2:8080/bpf?script={}&id={}".format("target_micros.bt",experiment_parameters["NAME"]+"_target_micro")])
+        
         if experiment_parameters["BCOUNT"] == "0":
             run_fio("lt0.fio", op)
         else:
             run_fio("lt.fio", op)
+        
+        #Stop the micro
+        #subprocess.run(["curl","http://172.16.137.2:8080/sbpf?script={}&id={}".format("target_micros.bt",experiment_parameters["NAME"]+"_target_micro")])
+        
         #Stop CPU usage
-        subprocess.run(["curl","http://127.0.0.1:8080/stop?id={}".format(experiment_parameters["NAME"]+"_local_cpu")])
-
-        #subprocess.run(["curl","http://127.0.0.1:8080/smbench?id={}".format(experiment_parameters["NAME"]+"_initiator_micro")])
+        #subprocess.run(["curl","http://127.0.0.1:8080/stop?id={}".format(experiment_parameters["NAME"]+"_local_cpu")])
+        
+        #subprocess.run(["curl","http://127.0.0.1:8080/sbpf?script={}&id={}".format("blk_initiator_processing.bt",experiment_parameters["NAME"]+"_initiator_reqprocesstime")])
+        
         #Parse the output to get latency, IOPS, bandwidth and percentile distribution 
         #Check the statistical validity with confirm tool
         if statisticaly_valid(experiment_parameters, iter_count * 5):
