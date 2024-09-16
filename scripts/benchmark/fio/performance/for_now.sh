@@ -1,2 +1,4 @@
-./sched_overhead.sh mq-deadline
-./sched_overhead.sh kyber
+./queue_pairs.sh
+./poll_nopoll.sh
+./tpoll.sh
+./arfs.sh

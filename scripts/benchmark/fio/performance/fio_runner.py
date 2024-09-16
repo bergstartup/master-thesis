@@ -23,14 +23,35 @@ iouring_type = ["ioup"]
 queue_depth = [2**i for i in range(10)]
 number_of_process = [1]
 use_cpu = "0"
+RUNS = 1
 
+
+if "npoll" in node:
+    iouring_type = ["ioup","iou"]
+
+#For normal performance
 if "perf" in node:
-    number_of_process = [1,2,3,4,5,6,7,8,9]
+    number_of_process = [1]
     use_cpu = "0, 1, 2, 3, 4, 5, 6, 7, 8, 9"
-    req_size = ["4k","64K"]
+    req_size = ["4k"]
     queue_depth = [2**i for i in range(9)]
 
 
+#For benchmark
+if "bench" in node:
+    number_of_process = [1, 2, 3, 4, 5]
+    use_cpu = "0, 1, 2, 3, 4, 5, 6, 7, 8, 9"
+    req_size = ["4k","8k","16k","32k","64k","128k","256k"]
+    queue_depth = [2**i for i in range(9)]
+
+#For tpoll
+if "tpoll" in node:
+    number_of_process = [1]
+    use_cpu = "0"
+    req_size = ["4k"]
+    queue_depth = [1,128]
+
+#For target bottleneck
 if "target" in node:
     number_of_process = [10]
     use_cpu = "0, 1, 2, 3, 4, 5, 6, 7, 8, 9"
@@ -39,13 +60,14 @@ if "target" in node:
 
 #For limited queue pairs
 if "qp_" in node:
-    number_of_process = [4, 8]
+    number_of_process = [1, 2, 4, 8, 10]
     use_cpu = "0, 1, 2, 3, 4, 5, 6, 7, 8, 9"
-    queue_depth = [128]
+    queue_depth = [1, 128]
     req_size = ["4k"]
 
 
-#Why did I do this?
+#Why did I do this? For scheduler
+#I dont we will need this!
 if "lhead" in node:
     if "inter" in node:
         queue_depth = [1]
@@ -68,22 +90,23 @@ def list_all_experiments():
                 for qd in queue_depth:
                     for np in number_of_process:
                         for io in iouring_type:
-                            parameters = {}
-                            parameters["DEVICE"] = devices[dt]
-                            parameters["WORKLOAD"] = wt
-                            parameters["QD"] = qd
-                            #parameters["CPUS"] = ",".join([str(i) for i in range(np)])
-                            parameters["CPUS"] = use_cpu
-                            parameters["NPROCESS"] = np
-                            parameters["REQSIZE"] = rs
-                            parameters["SQPOLL"] = 0
-                            parameters["CPOLL"] = 0
-                            if 'p' in io:
-                                parameters["CPOLL"] = 1
-                            if 's' in io:
-                                parameters["SQPOLL"] = 1
-                            parameters["NAME"] = node+"_"+io+"_"+dt+"_"+wt+"_"+"QD"+str(qd)+"_"+"P"+str(np)+"_"+rs
-                            experiments.append(parameters)
+                            for i in range(RUNS):
+                                parameters = {}
+                                parameters["DEVICE"] = devices[dt]
+                                parameters["WORKLOAD"] = wt
+                                parameters["QD"] = qd
+                                #parameters["CPUS"] = ",".join([str(i) for i in range(np)])
+                                parameters["CPUS"] = use_cpu
+                                parameters["NPROCESS"] = np
+                                parameters["REQSIZE"] = rs
+                                parameters["SQPOLL"] = 0
+                                parameters["CPOLL"] = 0
+                                if 'p' in io:
+                                    parameters["CPOLL"] = 1
+                                if 's' in io:
+                                    parameters["SQPOLL"] = 1
+                                parameters["NAME"] = node+"_"+io+"_"+dt+"_"+wt+"_"+"QD"+str(qd)+"_"+"P"+str(np)+"_"+rs+"_RUN"+str(i)
+                                experiments.append(parameters)
     return experiments
 
 def set_experiment_parameters(parameters):
@@ -167,7 +190,7 @@ for experiment_parameters in all_experiments:
 
     #Set the environemnt variables for the experiment
     set_experiment_parameters(experiment_parameters)
-    for iter_count in range(3, 16):
+    for iter_count in range(2, 16):
         #Set exp time
         os.environ["TIME"] = str(iter_count * 60) 
         print("Running experiment for (sec)",iter_count * 60)
@@ -178,16 +201,16 @@ for experiment_parameters in all_experiments:
         #for i in range(experiment_parameters["BPROCESS"]):
         #    yes.append(run_yes())
         #Run target cpu util
-        subprocess.run(["curl","http://172.16.137.2:8080/start?id={}".format(experiment_parameters["NAME"]+"_target_cpu")]) 
+        #subprocess.run(["curl","http://172.16.137.2:8080/start?id={}".format(experiment_parameters["NAME"]+"_target_cpu")]) 
         #Run initiator cpu util
-        subprocess.run(["curl","http://127.0.0.1:8080/start?id={}".format(experiment_parameters["NAME"]+"_initiator_cpu")])
+        #subprocess.run(["curl","http://127.0.0.1:8080/start?id={}".format(experiment_parameters["NAME"]+"_initiator_cpu")])
         #Run the fio
         #run_fio("workload.fio", op, [i for i in range(experiment_parameters["NPROCESS"])])
         run_fio("workload.fio", op)
         #Kill initiator cpu util
-        subprocess.run(["curl","http://127.0.0.1:8080/stop?id={}".format(experiment_parameters["NAME"]+"_initiator_cpu")])
+        #subprocess.run(["curl","http://127.0.0.1:8080/stop?id={}".format(experiment_parameters["NAME"]+"_initiator_cpu")])
         #Kill target cpu util
-        subprocess.run(["curl","http://172.16.137.2:8080/stop?id={}".format(experiment_parameters["NAME"]+"_target_cpu")])
+        #subprocess.run(["curl","http://172.16.137.2:8080/stop?id={}".format(experiment_parameters["NAME"]+"_target_cpu")])
 
         #kill tcp_trace
         #for i in yes:

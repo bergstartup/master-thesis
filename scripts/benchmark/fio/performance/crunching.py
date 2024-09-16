@@ -5,15 +5,49 @@ import os
 #Observation directory
 observation_dir = "../../../../observations/performance/"
 cpu_util_dir = "../../../monitor/"
+RUNS = 1
 
-#Define workload parameters
-workload_type = ["read","write","randread","randwrite"]
 
-queue_depth = [1, 32, 64, 128]
 
-number_of_process = [1, 2, 4, 8]
+def reduce(dicts):
+    def recurse(keys, aggregated_data):
+        for k, v in keys.items():
+            if isinstance(v, dict):
+                # Recur for dictionaries
+                aggregated_data.setdefault(k, {})
+                recurse(v, aggregated_data[k])
+            else:
+                # Aggregate numeric values
+                if k not in aggregated_data:
+                    aggregated_data[k] = 0
+                    #aggregated_data[k] = []
+                aggregated_data[k] += v
+                #aggregated_data[k].append(v)
 
-devices = ["RAM", "SSD"]
+    # Create an empty dictionary to hold aggregated results
+    aggregated_data = {}
+    
+    # Count the number of runs
+    num_runs = len(dicts)
+    
+    # Aggregate the data from each run
+    for run_key, run_data in dicts.items():
+        recurse(run_data, aggregated_data)
+
+    # Calculate the average
+    def calculate_average(data):
+        for k, v in data.items():
+            if isinstance(v, dict):
+                calculate_average(v)
+            else:
+                #v.sort()
+                #data[k] = v[RUNS//2]
+                data[k] = v / num_runs
+    
+    calculate_average(aggregated_data)
+    return aggregated_data
+
+
 
 def get_cpu_avg(exp):
     util = {}
@@ -33,33 +67,31 @@ def get_cpu_avg(exp):
             util[cpu] = {"usr":user,"sys":sys,"io":iowait}
     return util
 
-def list_all_experiments(node):
-    experiments = []
-    #TODO: Change the order accordingly!
-    for dt in devices:
-        for wt in workload_type:
-            for qd in queue_depth:
-                for np in number_of_process:
-                    parameters = {}
-                    #parameters["DEVICE"] = devices[dt]
-                    parameters["WORKLOAD"] = wt
-                    if "read" in wt:
-                        parameters["TYPE"] = "read"
-                    else:
-                        parameters["TYPE"] = "write"
-                    parameters["QD"] = qd
-                    parameters["NPROCESS"] = np
-                    parameters["NAME"] = node+"_"+dt+"_"+wt+"_"+"QD"+str(qd)+"_"+"P"+str(np)
-                    experiments.append(parameters)
-    
-    return experiments
-
-
-def get_experiment(node, dt, wt, qd, np):
-    return node+"_"+dt+"_"+wt+"_"+"QD"+str(qd)+"_"+"P"+str(np)
-
-
-
+def parse(exp):
+    obs_dict = {}
+    with open(observation_dir+exp,'r') as f:
+        data = json.load(f)
+        
+        #latency
+        obs = data['jobs'][0]["read"]
+        obs_dict['latency'] = obs['clat_ns']
+        obs_dict['iops'] = {'min':obs['iops_min'],'max':obs['iops_max'],'mean':obs['iops_mean'],'stddev':obs['iops_stddev'],'N':obs['iops_samples']}
+        obs_dict['bw'] = {'min':obs['bw_min'],'max':obs['bw_max'],'mean':obs['bw_mean'],'stddev':obs['bw_dev'],'N':obs['bw_samples']}
+        obs_dict['fio_cpu'] = {'runtime':data['jobs'][0]['job_runtime'],'usr':data['jobs'][0]['usr_cpu'],'sys':data['jobs'][0]['sys_cpu'],'ctx':data['jobs'][0]['ctx']}
+        try:
+            #Handle if no CPU usage is present
+            if "local" not in exp:
+                initiator_cpu = get_cpu_avg(exp+"_initiator_cpu")
+                target_cpu = get_cpu_avg(exp+"_target_cpu")
+                obs_dict['init_cpu'] = initiator_cpu
+                obs_dict['target_cpu'] = target_cpu
+            else:
+                local_cpu = get_cpu_avg(exp+"_local_cpu")
+                obs_dict['local_cpu'] = local_cpu
+        except:
+            pass
+        #runs_dict[exp.split(".")[0]] = obs_dict
+    return obs_dict
 
 #Crunch all observations
 all_observations = {}
@@ -71,30 +103,14 @@ experiments = os.listdir(observation_dir)
 for exp in experiments:
     if "bpf" in exp or "crunched_numbers_performance.json" in exp:
         continue
-
+    if "RUN0" not in exp:
+        continue
     try:
-        with open(observation_dir+exp,'r') as f:
-            data = json.load(f)
-            
-            #latency
-            operation = "read"
-            if "write" in exp:
-                operation = "write"
-            obs = data['jobs'][0][operation]
-            obs_dict = {}
-            obs_dict['latency'] = obs['clat_ns']
-            obs_dict['iops'] = {'min':obs['iops_min'],'max':obs['iops_max'],'mean':obs['iops_mean'],'stddev':obs['iops_stddev'],'N':obs['iops_samples']}
-            obs_dict['bw'] = {'min':obs['bw_min'],'max':obs['bw_max'],'mean':obs['bw_mean'],'stddev':obs['bw_dev'],'N':obs['bw_samples']}
-            obs_dict['fio_cpu'] = {'runtime':data['jobs'][0]['job_runtime'],'usr':data['jobs'][0]['usr_cpu'],'sys':data['jobs'][0]['sys_cpu'],'ctx':data['jobs'][0]['ctx']}
-            if "local" not in exp:
-                initiator_cpu = get_cpu_avg(exp+"_initiator_cpu")
-                target_cpu = get_cpu_avg(exp+"_target_cpu")
-                obs_dict['init_cpu'] = initiator_cpu
-                obs_dict['target_cpu'] = target_cpu
-            else:
-                local_cpu = get_cpu_avg(exp+"_local_cpu")
-                obs_dict['local_cpu'] = local_cpu
-            all_observations[exp.split(".")[0]] = obs_dict
+        runs_dict = {}
+        for i in ["RUN{}".format(j) for j in range(RUNS)]:
+            runs_dict[i] = parse(exp[:-4]+i) 
+        op = reduce(runs_dict)
+        all_observations[exp[:-5]] = op
     except Exception as e:
         print(exp, e)
 

@@ -16,9 +16,7 @@ sudo python3 fio_runner.py remote_10qp_npoll
 sudo nvme disconnect -d /dev/nvme0
 ../../../setup/nvmeof_tcp_initiator_setup.sh thesis.dev0 12 0
 sudo python3 fio_runner.py remote_12qp_npoll
+
+#Set back to normal
 sudo nvme disconnect -d /dev/nvme0
-../../../setup/nvmeof_tcp_initiator_setup.sh thesis.dev0 14 0
-sudo python3 fio_runner.py remote_14qp_npoll
-sudo nvme disconnect -d /dev/nvme0
-../../../setup/nvmeof_tcp_initiator_setup.sh thesis.dev0 20 0
-sudo python3 fio_runner.py remote_20qp_npoll
+../../../setup/nvmeof_tcp_initiator_setup.sh thesis.dev0 10 0
