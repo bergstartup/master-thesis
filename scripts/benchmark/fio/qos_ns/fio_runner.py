@@ -6,17 +6,18 @@ import subprocess
 import signal
 import re
 
-observation_dir="../../../../observations/qos/"
+observation_dir="../../../../observations/qos2/"
 confidence_level = 0.95
 error_bound = 0.05
 log_dir = "./logs/"
 
 node = sys.argv[1] #type_fop_bop
-number_of_bprocess = [32, 16, 8, 4, 2, 1, 0]
-block_size_of_bprocess = ["4k", "64k"]
+number_of_bprocess = [1]
+block_size_of_bprocess = ["4k"]
 
 RUNS = 3
-
+LOAD = [10*i for i in range(10)]
+LOAD = [20,40,60,80,100]
 bop = "randread"
 if "bwrite" in node:
     bop = "randwrite"
@@ -30,21 +31,45 @@ if "fwrite" in node:
     warmup = str(5*60)
 
 
+if "ID_TD_SS" in node:
+    number_of_bprocess=[5,6,7,8,9]
+
+
+if "ID_TS_SD" in node:
+    LOAD = [40,60,80,100]
+    number_of_bprocess=[2,3,4,5,6]
+
+
+if "ICS_TD_SD" in node:
+    number_of_bprocess=[1,2,3,4,5]
+
+if "ID_TD_SD" in node:
+    LOAD = [100]
+    number_of_bprocess = [i for i in range(1,10)]
+
+#QD = [2**i for i in range(9)]
+QD = [1, 128]
 def list_all_experiments():
     experiments = []
-    for bbs in block_size_of_bprocess:
-        for bp in number_of_bprocess:
-            for i in range(1, RUNS+1):
-                pmtrs = {}
-                pmtrs["BBSIZE"] = bbs
-                pmtrs["BCOUNT"] = str(bp)
-                pmtrs["FDEVICE"] = "/dev/nvme0n1"
-                pmtrs["BDEVICE"] = "/dev/nvme0n1"
-                pmtrs["RUN"] = str(i)
-                pmtrs["NAME"] = "{}_SSD_BP{}_BS{}_RUN{}".format(node, bp, bbs, i)
-                pmtrs["FOP"] = fop
-                pmtrs["BOP"] = bop
-                experiments.append(pmtrs)
+    for load in LOAD:
+        for qd in QD:
+            for bp in number_of_bprocess:
+                for i in range(1, RUNS+1):
+                    pmtrs = {}
+                    pmtrs["FDEVICE"] = os.environ["FDEVICE"]
+                    pmtrs["BDEVICE"] = os.environ["BDEVICE"]
+                    pmtrs["RUN"] = str(i)
+                    bbs = block_size_of_bprocess[0]
+                    pmtrs["BBSIZE"] = bbs
+                    pmtrs["BCOUNT"] = str(bp)
+                    pmtrs["NAME"] = "{}_SSD_QD{}_LOAD{}_P{}_RUN{}".format(node, qd, load, bp, i)
+                    pmtrs["FOP"] = fop
+                    pmtrs["BOP"] = bop
+                    pmtrs["FQD"] = str(qd)
+                    if load != 0:
+                        #Limit per process
+                        pmtrs["IOPS_LIM"] = str((int(os.environ["MAX_IOPS"])* 1000 * load/100)/bp)
+                    experiments.append(pmtrs)
     return experiments
 
 def set_experiment_parameters(parameters):
@@ -108,7 +133,7 @@ for experiment_parameters in experiments:
         #subprocess.run(["curl","http://127.0.0.1:8080/bpf?script={}&id={}".format("blk_initiator_processing.bt",experiment_parameters["NAME"]+"_initiator_reqprocesstime")])
 
         #Start CPU usage 
-        #subprocess.run(["curl","http://127.0.0.1:8080/start?id={}".format(experiment_parameters["NAME"]+"_local_cpu")])
+        #subprocess.run(["curl","http://172.16.137.2:8080/start?id={}".format(experiment_parameters["NAME"]+"_target_cpu")])
         
         #Start the target micro
         #subprocess.run(["curl","http://172.16.137.2:8080/bpf?script={}&id={}".format("target_micros.bt",experiment_parameters["NAME"]+"_target_micro")])
@@ -122,7 +147,7 @@ for experiment_parameters in experiments:
         #subprocess.run(["curl","http://172.16.137.2:8080/sbpf?script={}&id={}".format("target_micros.bt",experiment_parameters["NAME"]+"_target_micro")])
 
         #Stop CPU usage
-        #subprocess.run(["curl","http://127.0.0.1:8080/stop?id={}".format(experiment_parameters["NAME"]+"_local_cpu")])
+        #subprocess.run(["curl","http://172.16.137.2:8080/stop?id={}".format(experiment_parameters["NAME"]+"_target_cpu")])
 
         #subprocess.run(["curl","http://127.0.0.1:8080/sbpf?script={}&id={}".format("blk_initiator_processing.bt",experiment_parameters["NAME"]+"_initiator_reqprocesstime")])
 
