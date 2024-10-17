@@ -1,0 +1,6 @@
+observations/performance/remote*
+observations/performance/local*
+scripts/monitor/remote*
+scripts/monitor/local*
+observations/qos/remote*
+observations/qos/local*
