@@ -12,7 +12,7 @@ log_dir = "./logs/"
 NCPUS = 10
 node = sys.argv[1] #Either local or remote
 devices = {}
-devices["NBD"] = "/dev/nbd"
+devices["ublk"] = "/dev/ublkb0"
 
 #Define workload parameters
 workload_type = ["randread"]
@@ -27,9 +27,9 @@ RUNS = 1
 
 #For benchmark
 if "bench" in node:
-    number_of_process = [1, 2, 3]
-    use_cpu = "0, 1, 2, 3, 4, 5, 6, 7, 8, 9"
-    req_size = ["4k","32k","64k"]
+    number_of_process = [1]
+    use_cpu = "0, 1"
+    req_size = ["4k"]
     queue_depth = [2**i for i in range(5)]
 
 
@@ -145,7 +145,7 @@ for experiment_parameters in all_experiments:
     set_experiment_parameters(experiment_parameters)
     for iter_count in range(2, 16):
         #Set exp time
-        os.environ["TIME"] = "30"
+        os.environ["TIME"] = "20"
         print("Running experiment for (sec)",iter_count * 60)
         
         #run tcp_trace
