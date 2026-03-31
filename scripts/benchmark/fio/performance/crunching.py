@@ -97,8 +97,11 @@ def parse(exp):
 
 #Crunch all observations
 all_observations = {}
-with open(observation_dir+'crunched_numbers_performance.json','r') as f:
-    all_observations = json.load(f)
+try:
+    with open(observation_dir+'crunched_numbers_performance.json','r') as f:
+        all_observations = json.load(f)
+except:
+    pass
     
 experiments = os.listdir(observation_dir)
 #experiments = ["remote_npoll_iou_SSD_randread_QD64_P1_4k"]
